@@ -25,6 +25,18 @@ try:
 except Exception as e:
     sv.logger.warning(f"pcr-arena 模块缺少 点赞（priconne/gadget/thumb-up-a.png）和/或 点踩（priconne/gadget/thumb-down-a.png）图标资源，将改用文字代替。")
 
+def clear_cache_except_preserved():  
+    """清空缓存，保留best_atk_records.json和buffer.json"""  
+    buffer_dir = join(curpath, 'buffer/')  
+    preserved_files = {'buffer.json', 'best_atk_records.json'}  
+      
+    for filename in listdir(buffer_dir):  
+        if filename not in preserved_files:  
+            try:  
+                remove(join(buffer_dir, filename))  
+            except:  
+                pass
+
 async def render_atk_def_teams(entries, border_pix=5):
     '''
     entries = [ {'atk': [int], 'up': int, 'down': int } ]
@@ -435,9 +447,11 @@ async def get_pic(address: str):
     return await (await aiorequests.get(address, timeout=6)).content
 
 
-async def _QueryArenaImageAsync(image_url: str, region: int, bot: HoshinoBot, ev: CQEvent):
-    # await bot.send(ev, "recognizing")
-    image = Image.open(BytesIO(await get_pic(image_url)))
+async def _QueryArenaImageAsync(image_url: str, region: int, bot: HoshinoBot, ev: CQEvent):  
+    # 清空缓存  
+    clear_cache_except_preserved()  
+      
+    image = Image.open(BytesIO(await get_pic(image_url)))  
     boxDict, s = await getBox(image)
 
     if boxDict == []:
@@ -720,29 +734,36 @@ def remove_buffer(uid: str):
         with open(bufferpath, 'w', encoding="utf-8") as fp:
             json.dump(buffer, fp, ensure_ascii=False, indent=4)
 
-async def _QueryArenaTextAsync(text: str, region: int, bot: HoshinoBot, ev: CQEvent):
-    defen = re.sub(r'[?？，,_]', '', text)
-    defen, unknown = chara.roster.parse_team(defen)
-    if unknown:
-        _, name, score = chara.guess_id(unknown)
-        if score < 50 and not defen:
-            return  # 忽略无关对话
-        msg = f'无法识别"{unknown}"' if score < 50 else f'无法识别"{unknown}" 您说的有{score}%可能是{name}'
-        await bot.finish(ev, msg)
-    await __arena_query(bot, ev, region, defen)
+async def _QueryArenaTextAsync(text: str, region: int, bot: HoshinoBot, ev: CQEvent):  
+    # 清空缓存  
+    clear_cache_except_preserved()  
+      
+    # 检测是否包含"按时间"  
+    sort = 2 if "按时间" in text else 1  
+      
+    # 移除"按时间"关键词  
+    defen = re.sub(r'[?？，,_按时间]', '', text)  
+    defen, unknown = chara.roster.parse_team(defen)  
+    if unknown:  
+        _, name, score = chara.guess_id(unknown)  
+        if score < 50 and not defen:  
+            return  
+        msg = f'无法识别"{unknown}"' if score < 50 else f'无法识别"{unknown}" 您说的有{score}%可能是{name}'  
+        await bot.finish(ev, msg)  
+    await __arena_query(bot, ev, region, defen, sort=sort)
     
-async def __arena_query(bot, ev: CQEvent, region: int, defen, raw=0, only_use_cache=False):
-    if len(defen) > 5:
-        await bot.finish(ev, '编队不能多于5名角色', at_sender=True)
-    if len(defen) < 4:
-        await bot.finish(ev, '编队角色过少', at_sender=True)
-    if len(defen) != len(set(defen)):
-        await bot.finish(ev, '编队中含重复角色', at_sender=True)
-    if any(chara.is_npc(i) for i in defen):
-        await bot.finish(ev, '编队中含未实装角色', at_sender=True)
-
-    key = ''.join([str(x) for x in sorted(defen)]) + str(region)
-    res = await arena.do_query(defen, region, -1 if only_use_cache else 1)
+async def __arena_query(bot, ev: CQEvent, region: int, defen, raw=0, only_use_cache=False, sort=1):  
+    if len(defen) > 5:  
+        await bot.finish(ev, '编队不能多于5名角色', at_sender=True)  
+    if len(defen) < 4:  
+        await bot.finish(ev, '编队角色过少', at_sender=True)  
+    if len(defen) != len(set(defen)):  
+        await bot.finish(ev, '编队中含重复角色', at_sender=True)  
+    if any(chara.is_npc(i) for i in defen):  
+        await bot.finish(ev, '编队中含未实装角色', at_sender=True)  
+  
+    key = ''.join([str(x) for x in sorted(defen)]) + str(region)  
+    res = await arena.do_query(defen, region, -1 if only_use_cache else 1, sort)
 
     defen = [chara.fromid(x).name for x in defen]
     defen = f"防守方【{' '.join(defen)}】"

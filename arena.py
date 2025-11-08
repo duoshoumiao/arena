@@ -117,7 +117,7 @@ def result2render(result, team_type="normal", id_list=[]):
     # return [{"atk": [chara.fromid(c["id"] // 100, c["star"], c["equip"]) for c in entry["atk"]], "up": entry["up"], "down": entry["down"], "val": caculateVal(entry), "team_type": team_type} for entry in result]
 
 
-async def do_query(id_list, region=1, try_cnt=1):
+async def do_query(id_list, region=1, try_cnt=1, sort=1):
     if len(id_list) < 4 or len(id_list) > 5:
         return []
     if len(id_list) == 4:
@@ -180,7 +180,7 @@ async def do_query(id_list, region=1, try_cnt=1):
                 "def": id_list_query,
                 "nonce": "a",
                 "page": 1,
-                "sort": 1,
+                "sort": sort,
                 "ts": int(time.time()),
                 "region": region,
             }
