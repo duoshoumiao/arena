@@ -1,6 +1,6 @@
 # 竞技场查询 with 图片支持
 本模块由[ellye](https://github.com/watermellye)完善功能，增加作业网的截图查询功能。
-
+来自怡宝https://github.com/watermellye/HoshinoBot的arena
 支持全屏和部分截图。支持从各中页面和长宽比中识别出角色头像。当截图中含有多队时返回无冲配队。
 
 ## 食用方法
