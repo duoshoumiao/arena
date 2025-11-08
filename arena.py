@@ -104,14 +104,15 @@ def result2render(result, team_type="normal", id_list=[]):
             except:
                 pass
 
-        render.append({
-            "atk": [chara.fromid(c["id"] // 100, c["star"], c["equip"]) for c in entry["atk"]],
-            "up": entry["up"],
-            "down": entry["down"],
-            "val": caculateVal(entry),
-            "team_type": write_type
+        render.append({  
+            "atk": [chara.fromid(c["id"] // 100, c["star"], c["equip"]) for c in entry["atk"]],  
+            "up": entry["up"],  
+            "down": entry["down"],  
+            "val": caculateVal(entry),  
+            "team_type": write_type,  
+            "updated": entry.get("updated", "")  # 新增时间字段  
         })
-
+        
     return render
     # return [{"atk": [chara.fromid(c["id"] // 100, c["star"], c["equip"]) for c in entry["atk"]], "up": entry["up"], "down": entry["down"], "val": caculateVal(entry), "team_type": team_type} for entry in result]
 
@@ -236,6 +237,8 @@ async def do_query(id_list, region=1, try_cnt=1):
                 await asyncio.sleep(1)
                 return await do_query(id_list, region, try_cnt + 1)
 
-    render = result2render(result)
-    logger.info(f'    共有{len(render)}条结果')
+    render = result2render(result)  
+    # 按更新时间降序排序(最新的在前)  
+    render = sorted(render, key=lambda x: x.get("updated", ""), reverse=True)  
+    logger.info(f'    共有{len(render)}条结果')  
     return render

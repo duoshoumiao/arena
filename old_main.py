@@ -4,7 +4,7 @@ import json
 from io import BytesIO
 from os.path import dirname, join, exists
 from os import remove, listdir
-
+from datetime import datetime 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageColor
 import cv2
@@ -32,7 +32,7 @@ async def render_atk_def_teams(entries, border_pix=5):
     n = len(entries)
     icon_size = 64
     small_icon_size = 32
-    im = Image.new('RGBA', (5 * icon_size + 100, n * (icon_size + border_pix) - border_pix), (255, 255, 255, 255))
+    im = Image.new('RGBA', (5 * icon_size + 200, n * (icon_size + border_pix) - border_pix), (255, 255, 255, 255))
     font = ImageFont.truetype('msyh.ttc', 16)
     draw = ImageDraw.Draw(im)
     for i, e in enumerate(entries):
@@ -69,6 +69,23 @@ async def render_atk_def_teams(entries, border_pix=5):
                 draw.text((x1, y1 + 35), f"踩", (0, 0, 0, 255), font)
             draw.text((x1 + 25, y1 + 10), f"{e['up']}", (0, 0, 0, 255), font)
             draw.text((x1 + 25, y1 + 35), f"{e['down']}", (0, 0, 0, 255), font)
+            
+            if "updated" in e and e["updated"]:  
+                from datetime import datetime  
+                try:  
+                    time_str_raw = e["updated"].replace('Z', '+00:00')  
+                    if '.' in time_str_raw:  
+                        parts = time_str_raw.split('.')  
+                        ms_part = parts[1].split('+')[0]  
+                        ms_part = ms_part.ljust(6, '0')[:6]  
+                        time_str_raw = f"{parts[0]}.{ms_part}+00:00"  
+                      
+                    dt = datetime.fromisoformat(time_str_raw)  
+                    time_str = dt.strftime('%Y-%m-%d %H:%M')  
+                    draw.text((x1, y1 + 50), f"更新: {time_str}", (128, 128, 128, 255), font)  
+                except Exception as ex:  
+                    sv.logger.warning(f"Failed to parse timestamp: {e['updated']}, error: {ex}")
+                
         elif e["team_type"] == "approximation":
             draw.text((x1, y1 + 22), f"近似解", (0, 0, 0, 255), font)
         elif "approximation" in e["team_type"]:
