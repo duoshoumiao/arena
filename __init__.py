@@ -13,7 +13,7 @@ sv_help = f'''
 源码：https://github.com/watermellye/arena
 '''.strip()
 
-sv = Service('截图拆', help_=sv_help, bundle='pcr查询')
+sv = Service('截图拆', help_=sv_help, bundle='pcr查询',enable_on_default=False)
 
 gs_prefix_all = ('怎么拆', '怎么解', '怎么打', '如何拆', '如何解', '如何打', 'jjc查询')
 gs_prefix_bilibili = tuple(["bjjc"] + ['b' + x for x in gs_prefix_all] + ['B' + x for x in gs_prefix_all])

@@ -28,7 +28,7 @@ except Exception as e:
 def clear_cache_except_preserved():  
     """清空缓存，保留best_atk_records.json和buffer.json"""  
     buffer_dir = join(curpath, 'buffer/')  
-    preserved_files = {'buffer.json', 'best_atk_records.json'}  
+    preserved_files = {'buffer.json'}  
       
     for filename in listdir(buffer_dir):  
         if filename not in preserved_files:  
