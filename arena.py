@@ -80,7 +80,7 @@ def caculateVal(record) -> float:
     return val_1 + val_2 + random() / 1000  # 阵容推荐度权值
 
 
-def result2render(result, team_type="normal", id_list=[]):
+def result2render(result, team_type="normal", id_list=[], sort_by_time: bool = False):
     '''
     team_type:
     "normal":正常查询的阵容
@@ -110,14 +110,17 @@ def result2render(result, team_type="normal", id_list=[]):
             "down": entry["down"],  
             "val": caculateVal(entry),  
             "team_type": write_type,  
-            "updated": entry.get("updated", "")  # 新增时间字段  
+            "timestamp": entry.get("timestamp", 0)  # 添加时间戳字段  
         })
-        
+    if sort_by_time:  
+        render = list(sorted(render, key=lambda x: x.get("timestamp", 0), reverse=True))[:10]  
+    else:  
+        render = list(sorted(render, key=lambda x: x.get("val", -100), reverse=True))[:10]  
+          
     return render
     # return [{"atk": [chara.fromid(c["id"] // 100, c["star"], c["equip"]) for c in entry["atk"]], "up": entry["up"], "down": entry["down"], "val": caculateVal(entry), "team_type": team_type} for entry in result]
 
-
-async def do_query(id_list, region=1, try_cnt=1, sort=1):
+async def do_query(id_list, region=1, try_cnt=1, sort_by_time: bool = False):
     if len(id_list) < 4 or len(id_list) > 5:
         return []
     if len(id_list) == 4:
@@ -175,14 +178,22 @@ async def do_query(id_list, region=1, try_cnt=1, sort=1):
                 "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36",
                 "authorization": __get_auth_key(),
             }
-            payload = {
-                "_sign": "a",
-                "def": id_list_query,
-                "nonce": "a",
-                "page": 1,
-                "sort": sort,
-                "ts": int(time.time()),
-                "region": region,
+            # 根据 sort_by_time 参数设置 API 的 sort 值  
+            # 注意：具体值需要根据 API 文档确认，这里假设 1=按推荐度，2=按时间  
+            sort_value = 2 if sort_by_time else 1  
+              
+            header = {  
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36",  
+                "authorization": __get_auth_key(),  
+            }  
+            payload = {  
+                "_sign": "a",  
+                "def": id_list_query,  
+                "nonce": "a",  
+                "page": 1,  
+                "sort": sort_value,  # 使用计算出的 sort_value  
+                "ts": int(time.time()),  
+                "region": region,  
             }
 
             query_again = False
@@ -237,7 +248,7 @@ async def do_query(id_list, region=1, try_cnt=1, sort=1):
                 await asyncio.sleep(1)
                 return await do_query(id_list, region, try_cnt + 1)
 
-    render = result2render(result)  
+    render = result2render(result, sort_by_time=sort_by_time)
     # 按更新时间降序排序(最新的在前)  
     render = sorted(render, key=lambda x: x.get("updated", ""), reverse=True)  
     logger.info(f'    共有{len(render)}条结果')  

@@ -19,6 +19,10 @@ gs_prefix_all = ('怎么拆', '怎么解', '怎么打', '如何拆', '如何解'
 gs_prefix_bilibili = tuple(["bjjc"] + ['b' + x for x in gs_prefix_all] + ['B' + x for x in gs_prefix_all])
 gs_prefix_taiwan = tuple(["tjjc"] + ['t' + x for x in gs_prefix_all] + ['T' + x for x in gs_prefix_all])
 gs_prefix_japan = tuple(["rjjc"] + ['r' + x for x in gs_prefix_all] + ['R' + x for x in gs_prefix_all])
+gs_prefix_all_time = tuple([x + '按时间' for x in gs_prefix_all] + [x + '时间排序' for x in gs_prefix_all])
+gs_prefix_bilibili_time = tuple([x + '按时间' for x in gs_prefix_bilibili] + [x + '时间排序' for x in gs_prefix_bilibili])  
+gs_prefix_taiwan_time = tuple([x + '按时间' for x in gs_prefix_taiwan] + [x + '时间排序' for x in gs_prefix_taiwan])  
+gs_prefix_japan_time = tuple([x + '按时间' for x in gs_prefix_japan] + [x + '时间排序' for x in gs_prefix_japan])
 
 def IsEmptyMessage(message: Message) -> bool:
     return all([x.type == 'text' and x.data['text'].strip() == '' for x in message])
@@ -32,6 +36,13 @@ async def QueryAllInterface(bot: HoshinoBot, ev: CQEvent):
         await QueryArenaInterface(bot, ev, ev.message, RegionEnum.All)
         await bot.send(ev, f'请使用 bjjc/rjjc/tjjc 以过滤查询的服务器。')
 
+@sv.on_prefix(gs_prefix_all_time)  
+async def QueryAllTimeInterface(bot: HoshinoBot, ev: CQEvent):  
+    if IsEmptyMessage(ev.message):  
+        await bot.send(ev, sv.help)  
+    else:  
+        await QueryArenaInterface(bot, ev, ev.message, RegionEnum.All, sort_by_time=True)  
+        await bot.send(ev, f'请使用 bjjc/rjjc/tjjc 以过滤查询的服务器。')
 
 @sv.on_prefix(gs_prefix_bilibili)
 async def QueryBilibiliInterface(bot: HoshinoBot, ev: CQEvent):
@@ -59,6 +70,31 @@ async def QueryJapanInterface(bot: HoshinoBot, ev: CQEvent):
     else:
         await QueryArenaInterface(bot, ev, ev.message, RegionEnum.Japan)
 
+@sv.on_prefix(gs_prefix_bilibili_time)  
+async def QueryBilibiliTimeInterface(bot: HoshinoBot, ev: CQEvent):  
+    if IsEmptyMessage(ev.message):  
+        await bot.send(ev, f'已收到查作业（B服，按时间排序）请求，请在 {gs_seconds_to_wait} 秒内发送防守队伍截图')  
+        gs_qqid2request[ev.user_id] = QueryRequestContext(RegionEnum.Bilibili, sort_by_time=True)  
+    else:  
+        await QueryArenaInterface(bot, ev, ev.message, RegionEnum.Bilibili, sort_by_time=True)  
+  
+  
+@sv.on_prefix(gs_prefix_taiwan_time)  
+async def QueryTaiwanTimeInterface(bot: HoshinoBot, ev: CQEvent):  
+    if IsEmptyMessage(ev.message):  
+        await bot.send(ev, f'已收到查作业（台服，按时间排序）请求，请在 {gs_seconds_to_wait} 秒内发送防守队伍截图')  
+        gs_qqid2request[ev.user_id] = QueryRequestContext(RegionEnum.Taiwan, sort_by_time=True)  
+    else:  
+        await QueryArenaInterface(bot, ev, ev.message, RegionEnum.Taiwan, sort_by_time=True)  
+  
+  
+@sv.on_prefix(gs_prefix_japan_time)  
+async def QueryJapanTimeInterface(bot: HoshinoBot, ev: CQEvent):  
+    if IsEmptyMessage(ev.message):  
+        await bot.send(ev, f'已收到查作业（日服，按时间排序）请求，请在 {gs_seconds_to_wait} 秒内发送防守队伍截图')  
+        gs_qqid2request[ev.user_id] = QueryRequestContext(RegionEnum.Japan, sort_by_time=True)  
+    else:  
+        await QueryArenaInterface(bot, ev, ev.message, RegionEnum.Japan, sort_by_time=True)
 
 def GetImageUrlFromMessage(message: Message) -> Optional[str]:
     images = [x.data for x in message if x.type == 'image']
@@ -68,12 +104,12 @@ def GetImageUrlFromMessage(message: Message) -> Optional[str]:
     return url
 
 
-async def QueryArenaInterface(bot: HoshinoBot, ev: CQEvent, msg: Message, region: RegionEnum):
-    image_url = GetImageUrlFromMessage(msg)
-    if image_url:
-        await QueryArenaImageAsync(image_url, region, bot, ev)
-    else:
-        await QueryArenaTextAsync(msg.extract_plain_text().strip(), region, bot, ev)
+async def QueryArenaInterface(bot: HoshinoBot, ev: CQEvent, msg: Message, region: RegionEnum, sort_by_time: bool = False):
+    image_url = GetImageUrlFromMessage(msg)  
+    if image_url:  
+        await QueryArenaImageAsync(image_url, region, bot, ev, sort_by_time)  
+    else:  
+        await QueryArenaTextAsync(msg.extract_plain_text().strip(), region, bot, ev, sort_by_time)
     
 @sv.on_message('group')
 async def QueryArenaGroupMessageContextInterface(bot: HoshinoBot, ev: CQEvent):
@@ -92,15 +128,15 @@ async def QueryArenaMessageContextInterface(bot: HoshinoBot, ev: CQEvent):
     if req is None:
         return
     
-    await QueryArenaImageAsync(image_url, req.region, bot, ev)
+    await QueryArenaImageAsync(image_url, req.region, bot, ev, req.sort_by_time)
 
-async def QueryArenaImageAsync(image_url: str, region: RegionEnum, bot: HoshinoBot, ev: CQEvent) -> None:
+async def QueryArenaImageAsync(image_url: str, region: RegionEnum, bot: HoshinoBot, ev: CQEvent, sort_by_time: bool = False) -> None:
     from .old_main import _QueryArenaImageAsync
-    await _QueryArenaImageAsync(image_url, Region2Int(region), bot, ev)
+    await _QueryArenaImageAsync(image_url, Region2Int(region), bot, ev, sort_by_time)
 
-async def QueryArenaTextAsync(text: str, region: RegionEnum, bot: HoshinoBot, ev: CQEvent) -> None:
+async def QueryArenaTextAsync(text: str, region: RegionEnum, bot: HoshinoBot, ev: CQEvent, sort_by_time: bool = False) -> None:
     from .old_main import _QueryArenaTextAsync
-    await _QueryArenaTextAsync(text, Region2Int(region), bot, ev)
+    await _QueryArenaTextAsync(text, Region2Int(region), bot, ev, sort_by_time)
     
 def Region2Int(region: RegionEnum) -> int:
     if region == RegionEnum.All:

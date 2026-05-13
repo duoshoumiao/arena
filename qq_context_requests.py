@@ -10,10 +10,11 @@ class RegionEnum(IntEnum):
     Japan = 1 << 3
     All = 1 << 4
 
-class QueryRequestContext:
-    def __init__(self, region: RegionEnum = RegionEnum.Unknown):
-        self.time = datetime.now()
-        self.region = region
+class QueryRequestContext:  
+    def __init__(self, region: RegionEnum = RegionEnum.Unknown, sort_by_time: bool = False):  
+        self.time = datetime.now()  
+        self.region = region  
+        self.sort_by_time = sort_by_time
     
 gs_qqid2request: Dict[int, QueryRequestContext] = {}
 gs_seconds_to_wait = 60

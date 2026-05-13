@@ -447,7 +447,7 @@ async def get_pic(address: str):
     return await (await aiorequests.get(address, timeout=6)).content
 
 
-async def _QueryArenaImageAsync(image_url: str, region: int, bot: HoshinoBot, ev: CQEvent):  
+async def _QueryArenaImageAsync(image_url: str, region: int, bot: HoshinoBot, ev: CQEvent, sort_by_time: bool = False):
     # 清空缓存  
     clear_cache_except_preserved()  
       
@@ -463,7 +463,7 @@ async def _QueryArenaImageAsync(image_url: str, region: int, bot: HoshinoBot, ev
         pass
 
     if len(boxDict) == 1:
-        await __arena_query(bot, ev, region, boxDict[0])
+        await __arena_query(bot, ev, region, boxDict[0], sort_by_time=sort_by_time)
         return
 
     if len(boxDict) > 3:
@@ -497,7 +497,7 @@ async def _QueryArenaImageAsync(image_url: str, region: int, bot: HoshinoBot, ev
         #     boxDict[query_index].append(1000)
         #     continue
 
-        records = await __arena_query(bot, ev, region, query_team, 1)
+        records = await __arena_query(bot, ev, region, query_team, 1, sort_by_time=sort_by_time)
 
         if records == []:
             continue
@@ -734,7 +734,7 @@ def remove_buffer(uid: str):
         with open(bufferpath, 'w', encoding="utf-8") as fp:
             json.dump(buffer, fp, ensure_ascii=False, indent=4)
 
-async def _QueryArenaTextAsync(text: str, region: int, bot: HoshinoBot, ev: CQEvent):  
+async def _QueryArenaTextAsync(text: str, region: int, bot: HoshinoBot, ev: CQEvent, sort_by_time: bool = False):
     # 清空缓存  
     clear_cache_except_preserved()  
       
@@ -750,9 +750,9 @@ async def _QueryArenaTextAsync(text: str, region: int, bot: HoshinoBot, ev: CQEv
             return  
         msg = f'无法识别"{unknown}"' if score < 50 else f'无法识别"{unknown}" 您说的有{score}%可能是{name}'  
         await bot.finish(ev, msg)  
-    await __arena_query(bot, ev, region, defen, sort=sort)
+    await __arena_query(bot, ev, region, defen, sort_by_time=sort_by_time)
     
-async def __arena_query(bot, ev: CQEvent, region: int, defen, raw=0, only_use_cache=False, sort=1):  
+async def __arena_query(bot, ev: CQEvent, region: int, defen, raw=0, only_use_cache=False, sort_by_time: bool = False):
     if len(defen) > 5:  
         await bot.finish(ev, '编队不能多于5名角色', at_sender=True)  
     if len(defen) < 4:  
@@ -763,7 +763,7 @@ async def __arena_query(bot, ev: CQEvent, region: int, defen, raw=0, only_use_ca
         await bot.finish(ev, '编队中含未实装角色', at_sender=True)  
   
     key = ''.join([str(x) for x in sorted(defen)]) + str(region)  
-    res = await arena.do_query(defen, region, -1 if only_use_cache else 1, sort)
+    res = await arena.do_query(defen, region, -1 if only_use_cache else 1, sort_by_time)
 
     defen = [chara.fromid(x).name for x in defen]
     defen = f"防守方【{' '.join(defen)}】"
