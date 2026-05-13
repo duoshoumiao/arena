@@ -110,10 +110,10 @@ def result2render(result, team_type="normal", id_list=[], sort_by_time: bool = F
             "down": entry["down"],  
             "val": caculateVal(entry),  
             "team_type": write_type,  
-            "timestamp": entry.get("timestamp", 0)  # 添加时间戳字段  
+            "updated": entry.get("updated", 0)  # 添加时间戳字段  
         })
     if sort_by_time:  
-        render = list(sorted(render, key=lambda x: x.get("timestamp", 0), reverse=True))[:10]  
+        render = list(sorted(render, key=lambda x: x.get("updated", 0), reverse=True))[:10]  
     else:  
         render = list(sorted(render, key=lambda x: x.get("val", -100), reverse=True))[:10]  
           

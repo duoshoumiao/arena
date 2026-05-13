@@ -82,19 +82,21 @@ async def render_atk_def_teams(entries, border_pix=5):
             draw.text((x1 + 25, y1 + 10), f"{e['up']}", (0, 0, 0, 255), font)
             draw.text((x1 + 25, y1 + 35), f"{e['down']}", (0, 0, 0, 255), font)
             
-            if "updated" in e and e["updated"]:  
+            if "updated" in e and e["updated"] != 0:  
                 from datetime import datetime  
                 try:  
-                    time_str_raw = e["updated"].replace('Z', '+00:00')  
-                    if '.' in time_str_raw:  
-                        parts = time_str_raw.split('.')  
-                        ms_part = parts[1].split('+')[0]  
-                        ms_part = ms_part.ljust(6, '0')[:6]  
-                        time_str_raw = f"{parts[0]}.{ms_part}+00:00"  
-                      
-                    dt = datetime.fromisoformat(time_str_raw)  
+                    if isinstance(e["updated"], str):  
+                        time_str_raw = e["updated"].replace('Z', '+00:00')  
+                        if '.' in time_str_raw:  
+                            parts = time_str_raw.split('.')  
+                            ms_part = parts[1].split('+')[0]  
+                            ms_part = ms_part.ljust(6, '0')[:6]  
+                            time_str_raw = f"{parts[0]}.{ms_part}+00:00"  
+                        dt = datetime.fromisoformat(time_str_raw)  
+                    else:  
+                        dt = datetime.fromtimestamp(e["updated"])  
                     time_str = dt.strftime('%Y-%m-%d %H:%M')  
-                    draw.text((x1, y1 + 50), f"更新: {time_str}", (128, 128, 128, 255), font)  
+                    draw.text((x1, y1 + 50), f"更新: {time_str}", (0, 0, 0, 255), font)  
                 except Exception as ex:  
                     sv.logger.warning(f"Failed to parse timestamp: {e['updated']}, error: {ex}")
                 
