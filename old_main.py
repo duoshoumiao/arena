@@ -804,15 +804,16 @@ async def __arena_query(bot, ev: CQEvent, region: int, defen, raw=0, only_use_ca
     sv.logger.debug('Arena result sent!')
 
 
-@sv.on_fullmatch('竞技场更新卡池')
-async def _update_dic(bot, ev):
-    try:
-        await bot.send(ev, f'{update_dic()}')
-        global data
-        data = np.load(dataDir, allow_pickle=True).item()
-        await process_data()
-    except Exception as e:
-        await bot.send(ev, f'Error: {e}')
+@sv.on_fullmatch('竞技场更新卡池')  
+async def _update_dic(bot, ev):  
+    try:  
+        await bot.send(ev, f'{update_dic()}')  
+        global data  
+        data = np.load(dataDir, allow_pickle=True).item()  
+        await process_data()  
+        await bot.send(ev, '数据已重新载入。')  
+    except Exception as e:  
+        await bot.send(ev, f'Error. 竞技场更新卡池失败：{e}')
 
 
 @sv.scheduled_job('cron', hour='3', minute='21')

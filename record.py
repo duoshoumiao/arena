@@ -32,8 +32,10 @@ def update_dic():
         except Exception as e:
             msg.append(f'Warning. 头像{icon_id}加入识别库失败：{e}')
     np.save(os.path.join(os.path.dirname(__file__), "dic"), dic)
-    if cnt_success:
-        msg.append(f'Succeed. 更新成功。共收录{cnt_success}个头像进入识别库')
+    if cnt_success:  
+        msg.append(f'Succeed. 更新成功。共收录{cnt_success}个头像进入识别库')  
+    else:  
+        msg.append('Failed. 更新失败。未收录任何头像，请检查 img/priconne/unit/ 目录下是否有 icon_unit_XXXXXX.png 头像文件')  
     return '\n'.join(msg)
 
 

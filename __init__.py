@@ -14,6 +14,7 @@ sv_help = f'''
 '''.strip()
 
 sv = Service('截图拆', help_=sv_help, bundle='pcr查询',enable_on_default=False)
+from . import old_main  # 模块加载时导入，确保 @sv.on_fullmatch('竞技场更新卡池') 等指令被注册
 
 gs_prefix_all = ('怎么拆', '怎么解', '怎么打', '如何拆', '如何解', '如何打', 'jjc查询')
 gs_prefix_bilibili = tuple(["bjjc"] + ['b' + x for x in gs_prefix_all] + ['B' + x for x in gs_prefix_all])
