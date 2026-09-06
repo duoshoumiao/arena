@@ -17,13 +17,63 @@ from .record import update_dic, update_record
 from .. import chara
 from .. import _pcr_data
 from . import sv
-from . import arena
-
+from . import arena  
+  
+curpath = dirname(__file__)   # ← 新增：提前定义，供下方属性图标加载块使用  
+  
 try:
     thumb_up_a = R.img('priconne/gadget/thumb-up-a.png').open().resize((16, 16), Image.LANCZOS)
     thumb_down_a = R.img('priconne/gadget/thumb-down-a.png').open().resize((16, 16), Image.LANCZOS)
 except Exception as e:
     sv.logger.warning(f"pcr-arena 模块缺少 点赞（priconne/gadget/thumb-up-a.png）和/或 点踩（priconne/gadget/thumb-down-a.png）图标资源，将改用文字代替。")
+
+# ↓↓↓ 属性图标 + 角色属性映射 ↓↓↓  
+ELEMENT_ICON_SIZE = 20  # 右上角小图标尺寸，可按需调整  
+  
+# 5 种属性 -> 图标文件名（放在模块目录下的 element/ 里，按你的实际文件名改）  
+ELEMENT_ICON_FILES = {  
+    "fire":    "fire.png",  
+    "water":   "water.png",  
+    "wind":    "wind.png",  
+    "light":   "light.png",  
+    "dark":    "dark.png",  
+}  
+  
+# 5 种属性 -> 该属性下的角色 UNIT ID 集合（把各类角色的 UNIT ID 填进对应集合）  
+ELEMENT_UNIT_IDS = {  
+    "fire":    {1047,1147,1095,1383,1017,1177,1061,1311,1065,1096,1032,1136,1005,1239,1090,1283,1349,1066,1801,1001,1004,1112,1355,1168,1267,1287,1228,1165,1236,1169,1071,1275,1113,1302,1364,1362,1091,1030,1809,1028,1081,1347,1178,1094,1167,1297,1392,1810,1277,1126,1011,1278,1245,1345,1099,1400,1360,1285,1237,1328,1323,1106,1010,1272,1111,1393},  # TODO: 火属性角色 UNIT ID，例如 1001, 1002  
+    "water":   {1270,1089,1125,1056,1276,1268,1171,1104,1294,1086,1131,1208,1079,1075,1295,1225,1117,1132,1224,1115,1219,1085,1199,1233,1174,1229,1064,1812,1279,1220,1316,1170,1172,1116,1048,1105,1133,1080,1173,1702,1076,1097,1226,1134,1103,1266,1269,1135,1100,1293,1101,1157,1317,1084,1322,1077,1078,1036,1227,1371,1388,1402,1389,1358,1363,1369,1380,1399,1403},  # TODO: 水属性角色 UNIT ID  
+    "wind":    {1052,1166,1162,1288,1054,1023,1037,1109,1163,1238,1021,1003,1232,1020,1803,1128,1033,1192,1053,1222,1127,1241,1240,1263,1252,1059,1130,1055,1155,1301,1098,1026,1296,1805,1308,1150,1307,1262,1156,1063,1107,1038,1254,1025,1319,1129,1221,1015,1253,1312,1040,1185,1042,1231,1164,1251,1356,1365,1376,1381,1394,1352,1353},  # TODO: 风属性角色 UNIT ID  
+    "light":   {1242,1321,1145,1058,1804,1119,1029,1210,1159,1087,1249,1158,1144,1250,1057,1118,1212,1207,1049,1332,1124,1264,1143,1034,1146,1248,1701,1309,1808,1142,1137,1138,1811,1068,1211,1092,1160,1070,1246,1310,1016,1123,1335,1121,1280,1014,1122,1213,1807,1265,1088,1230,1329,1273,1180,1012,1193,1802,1289,1176,1002,1284,1110,1186,1374,1379,1382,1395,1396,1397,1354},  # TODO: 光属性角色 UNIT ID  
+    "dark":    {1331,1007,1045,1191,1300,1139,1043,1108,1141,1200,1046,1027,1330,1271,1256,1298,1216,1299,1031,1140,1260,1209,1044,1009,1255,1336,1258,1261,1175,1223,1051,1006,1022,1257,1235,1082,1215,1247,1093,1069,1120,1318,1190,1018,1067,1182,1013,1214,1806,1060,1050,1179,1114,1320,1181,1290,1008,1083,1357,1359,1361,1387,1390,1391,1398,1401,1405},  # TODO: 暗属性角色 UNIT ID  
+}  
+  
+# 反向索引：UNIT ID -> 属性名  
+_UNITID_TO_ELEMENT = {}  
+for _elem, _ids in ELEMENT_UNIT_IDS.items():  
+    for _uid in _ids:  
+        _UNITID_TO_ELEMENT[_uid] = _elem  
+  
+# 预加载属性图标  
+ELEMENT_ICONS = {}  
+for _elem, _fname in ELEMENT_ICON_FILES.items():  
+    try:  
+        _p = join(curpath, 'element', _fname)  
+        ELEMENT_ICONS[_elem] = Image.open(_p).convert('RGBA').resize(  
+            (ELEMENT_ICON_SIZE, ELEMENT_ICON_SIZE), Image.LANCZOS)  
+    except Exception as e:  
+        sv.logger.warning(f"pcr-arena 缺少属性图标 element/{_fname}，该属性将不贴图标。")  
+  
+def _get_element_icon(c):  
+    """按角色对象 c 的 UNIT ID 取属性图标，取不到返回 None"""  
+    try:  
+        elem = _UNITID_TO_ELEMENT.get(int(c.id))  
+    except Exception:  
+        elem = None  
+    if elem is None:  
+        return None  
+    return ELEMENT_ICONS.get(elem)  
+# ↑↑↑ 属性图标 + 角色属性映射 ↑↑↑
 
 def clear_cache_except_preserved():  
     """清空缓存，保留best_atk_records.json和buffer.json"""  
@@ -58,15 +108,22 @@ async def render_atk_def_teams(entries, border_pix=5):
             e = {'atk': [chara.fromid(9000) for _ in range(5)], "team_type": "youshu"}
 
         # e此时只能是dict了
-        for j, c in enumerate(e['atk']):
-            x1 = j * icon_size
-            x2 = x1 + icon_size
-            try:
-                icon = await c.render_icon(icon_size)  # 如使用旧版hoshino（不返回结果），请去掉await
-                im.paste(icon, (x1, y1, x2, y2), icon)
-            except:
-                icon = c.render_icon(icon_size)
-                im.paste(icon, (x1, y1, x2, y2), icon)
+        for j, c in enumerate(e['atk']):  
+            x1 = j * icon_size  
+            x2 = x1 + icon_size  
+            try:  
+                icon = await c.render_icon(icon_size)  # 旧版hoshino请去掉await  
+                im.paste(icon, (x1, y1, x2, y2), icon)  
+            except:  
+                icon = c.render_icon(icon_size)  
+                im.paste(icon, (x1, y1, x2, y2), icon)  
+  
+            # 右上角叠加属性图标  
+            elem_icon = _get_element_icon(c)  
+            if elem_icon is not None:  
+                ex1 = x2 - ELEMENT_ICON_SIZE  
+                ey1 = y1  
+                im.paste(elem_icon, (ex1, ey1), elem_icon)
 
         x1 = 5 * icon_size + 10
         if e["team_type"] == "normal":
